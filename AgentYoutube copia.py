@@ -11,7 +11,7 @@ YOUTUBE_API_KEY = "a"
 youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
 # Inserisci la tua API Key di OpenAI
-openai.api_key = "a"s
+openai.api_key = "a"
 # 1. Ricerca su YouTube
 def search_youtube_videos(query, max_results=3):
     request = youtube.search().list(
