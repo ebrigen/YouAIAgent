@@ -7,7 +7,9 @@ from config import YOUTUBE_API_KEY, OPENAI_API_KEY  # <-- Importiamo le chiavi
 youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# ✅ 1. Ricerca su YouTube
+# Inserisci la tua API Key di OpenAI
+openai.api_key = "a"s
+# 1. Ricerca su YouTube
 def search_youtube_videos(query, max_results=3):
     request = youtube.search().list(
         q=query,
