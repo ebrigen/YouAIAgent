@@ -3,3 +3,4 @@ config.py
 llm/__pycache__/LLMRecap.cpython-313.pyc
 youtube/__pycache__/YouTubeAdvancedSearch.cpython-313.pyc
 .DS_Store
+__pycache__/config.cpython-313.pyc
