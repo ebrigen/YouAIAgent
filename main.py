@@ -12,11 +12,11 @@ def main():
     # 🔍 Ricerca avanzata
     query = input("🔍 Inserisci query di ricerca YouTube: ")
     results = yt.advanced_search(
-    query="python tutorial",
-    max_results=5,
-    order="relevance",
-    upload_time=None,
-    duration_filter=None
+        query=query,
+        upload_time="week",
+        duration_filter="medium",
+        order="viewCount",
+        max_results=5
     )
 
     if not results:

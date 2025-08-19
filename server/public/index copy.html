@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>YouTube RAG – Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    input, button, select { padding: 0.6rem 0.8rem; font-size: 1rem; }
+    .hit { padding: 0.9rem; border: 1px solid #ddd; border-radius: 10px; margin-top: 0.8rem; }
+    .meta { color: #666; font-size: 0.9rem; }
+    .small { font-size: 0.85rem; color: #444; }
+    .controls { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>YouTube RAG – Search</h1>
+
+  <div class="controls">
+    <div class="row">
+      <input id="query" type="text" placeholder="Type your question… e.g., how to make a perfect picture?" size="50" />
+      <input id="tag" type="text" placeholder="tag filter (optional)" />
+      <input id="docId" type="text" placeholder="doc_id filter (optional)" />
+      <input id="minImportance" type="number" step="0.1" placeholder="min importance (e.g., 1.2)" />
+      <select id="source">
+        <option value="">source (any)</option>
+        <option value="youtube">youtube</option>
+        <option value="book">book</option>
+      </select>
+      <input id="topK" type="number" min="1" max="20" value="5" />
+      <button id="go">Search</button>
+    </div>
+  </div>
+
+  <div id="status" class="small"></div>
+  <div id="results"></div>
+
+  <script>
+    const API = 'http://localhost:3001/api/search';
+
+    async function search() {
+      const query = document.getElementById('query').value.trim();
+      const tag = document.getElementById('tag').value.trim();
+      const docId = document.getElementById('docId').value.trim();
+      const minImportance = document.getElementById('minImportance').value.trim();
+      const source = document.getElementById('source').value.trim();
+      const topK = Number(document.getElementById('topK').value) || 5;
+
+      if (!query) return;
+
+      setStatus('Embedding & searching…');
+
+      const body = { query, topK };
+      if (tag) body.tag = tag;
+      if (docId) body.docId = docId;
+      if (minImportance) body.minImportance = minImportance;
+      if (source) body.source = source;
+
+      try {
+        const r = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Request failed');
+        render(data);
+        setStatus(`Found ${data.count} hits`);
+      } catch (e) {
+        setStatus('Error: ' + e.message);
+      }
+    }
+
+    function render(data) {
+      const root = document.getElementById('results');
+      root.innerHTML = '';
+      (data.hits || []).forEach((h, i) => {
+        const p = h.payload || {};
+        const div = document.createElement('div');
+        div.className = 'hit';
+        div.innerHTML = `
+          <div><strong>[${i+1}] ${escapeHtml(p.title || '')}</strong></div>
+          <div class="meta small">score=${h.score.toFixed(3)} | ${escapeHtml(p.doc_id || '')} | chunk ${Number(p.chunk_index)+1}/${p.total_chunks}</div>
+          <div class="small" style="margin-top:6px;">${escapeHtml((p.text || '').slice(0, 320))}…</div>
+          <div class="small" style="margin-top:6px;">
+            <a href="${p.source_url || '#'}" target="_blank" rel="noopener">open source</a>
+            | tags: ${(p.tags || []).join(', ')}
+            | importance: ${p.importance}
+            | views: ${p.metadata?.view_count ?? '-'}
+            | likes: ${p.metadata?.like_count ?? '-'}
+          </div>
+        `;
+        root.appendChild(div);
+      });
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    document.getElementById('go').addEventListener('click', search);
+    document.getElementById('query').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') search();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>YouTube RAG – QA</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    input, button { padding: .6rem .8rem; font-size: 1rem; }
+    .row { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .hit { padding: .8rem; border: 1px solid #ddd; border-radius: 10px; margin: .6rem 0; }
+    .small { font-size: .9rem; color: #555; }
+    .answer { background: #fafafa; border: 1px solid #eee; padding: 1rem; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h1>YouTube RAG – Ask</h1>
+  <div class="row">
+    <input id="q" type="text" size="60" placeholder="Ask: how to make a perfect picture?" />
+    <input id="k" type="number" min="1" max="20" value="5" title="top_k"/>
+    <button id="go">Ask</button>
+  </div>
+  <div id="status" class="small"></div>
+
+  <h3>Answer</h3>
+  <div id="answer" class="answer small">—</div>
+
+  <h3>Sources</h3>
+  <div id="hits"></div>
+
+  <script>
+    const API = '/qa'; // same-origin FastAPI
+
+    const $ = (id) => document.getElementById(id);
+
+    async function ask() {
+      const query = $('q').value.trim();
+      const top_k = Number($('k').value) || 5;
+      if (!query) return;
+      setStatus('Thinking…');
+      $('answer').textContent = '—';
+      $('hits').innerHTML = '';
+
+      try {
+        const r = await fetch(API, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ query, top_k })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Request failed');
+
+        $('answer').textContent = data.answer || '(no answer)';
+        (data.hits || []).forEach((h, i) => {
+          const div = document.createElement('div');
+          div.className = 'hit';
+          div.innerHTML = `
+            <div><strong>[${i+1}] ${escapeHtml(h.title || '')}</strong></div>
+            <div class="small">score=${(h.score||0).toFixed(3)} | ${escapeHtml(h.doc_id||'')} | chunk ${Number(h.chunk_index)+1}/${h.total_chunks}</div>
+            <div class="small" style="margin-top:6px;">${escapeHtml((h.text||'').slice(0,320))}…</div>
+            <div class="small" style="margin-top:6px;">
+              <a href="${h.source_url||'#'}" target="_blank" rel="noopener">open source</a>
+              | importance: ${h.importance ?? '-'}
+              | views: ${h.metadata?.view_count ?? '-'}
+              | likes: ${h.metadata?.like_count ?? '-'}
+            </div>`;
+          $('hits').appendChild(div);
+        });
+        setStatus(`Found ${data.hits?.length ?? 0} chunks`);
+      } catch (e) {
+        setStatus('Error: ' + e.message);
+      }
+    }
+
+    function setStatus(msg){ $('status').textContent = msg; }
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    $('go').addEventListener('click', ask);
+    $('q').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+  </script>
+</body>
+</html>

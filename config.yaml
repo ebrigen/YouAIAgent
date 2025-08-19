@@ -1,0 +1,22 @@
+qdrant:
+  host: "localhost"
+  port: 6333
+  collection: "youtube_rag"
+  distance: "Cosine"   # Cosine | Dot | Euclid
+  create_if_missing: true
+
+embedding:
+  model: "sentence-transformers/all-MiniLM-L6-v2"
+  device: "cpu"        # "cpu" | "cuda" (if available)
+  normalize: false     # if you want cosine via normalized vectors
+
+llm:
+  name: "google/flan-t5-base"
+  device: "cpu"        # "cpu" | "cuda"
+  max_new_tokens: 220
+  max_input_tokens: 512
+
+ingestion:
+  chunk_size: 500
+  chunk_overlap: 100
+  importance_keywords: ["ingredienti","ricetta","passaggi","tutorial","riassunto","conclusioni"]
